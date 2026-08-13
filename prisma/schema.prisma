@@ -1,0 +1,1170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ======================================================
+// ENUMS
+// ======================================================
+
+enum Cinsiyet {
+  KADIN
+  ERKEK
+  BELIRTILMEDI
+}
+
+enum OrganizationDurumu {
+  AKTIF
+  PASIF
+  SUSPENDED
+  SILINDI
+}
+
+enum SubscriptionDurumu {
+  DENEME
+  AKTIF
+  GECIKMIS
+  DONDURULDU
+  IPTAL_EDILDI
+  SONA_ERDI
+}
+
+enum FaturalandirmaPeriyodu {
+  AYLIK
+  YILLIK
+}
+
+enum RandevuDurumu {
+  PLANLANDI
+  ONAYLANDI
+  TAMAMLANDI
+  IPTAL_EDILDI
+  ERTELENDI
+  GELMEDI
+}
+
+enum RandevuKaynak {
+  PANEL
+  TELEFON
+  EMAIL
+  WHATSAPP
+  WEB
+  API
+  DIGER
+}
+
+enum RandevuElemanRolu {
+  SORUMLU
+  ASISTAN
+  TEKNISYEN
+  GOZLEMCI
+}
+
+enum ServisTuru {
+  BAKIM
+  ONARIM
+  KURULUM
+  KONTROL
+  DANISMANLIK
+  DIGER
+}
+
+enum AciliyetSeviyesi {
+  DUSUK
+  NORMAL
+  YUKSEK
+  KRITIK
+}
+
+enum AktiviteTipi {
+  NOT
+  ARAMA
+  EMAIL
+  SMS
+  WHATSAPP
+  RANDEVU
+  TEKLIF
+  ODEME
+  PAKET
+  GOREV
+  SISTEM
+}
+
+enum AktiviteDurumu {
+  PLANLANDI
+  DEVAM_EDIYOR
+  TAMAMLANDI
+  IPTAL_EDILDI
+}
+
+enum GorevDurumu {
+  BEKLIYOR
+  DEVAM_EDIYOR
+  TAMAMLANDI
+  IPTAL_EDILDI
+}
+
+enum GorevOnceligi {
+  DUSUK
+  NORMAL
+  YUKSEK
+  KRITIK
+}
+
+enum PaketDurumu {
+  AKTIF
+  PASIF
+  ARSIVLENDI
+}
+
+enum MusteriPaketDurumu {
+  BEKLIYOR
+  AKTIF
+  SONA_ERDI
+  IPTAL_EDILDI
+  DONDURULDU
+}
+
+enum OdemeDurumu {
+  BEKLIYOR
+  ODEME_ALINDI
+  KISMI_ODEME
+  GECIKTI
+  IPTAL_EDILDI
+  IADE_EDILDI
+}
+
+enum OdemeYontemi {
+  NAKIT
+  KREDI_KARTI
+  HAVALE
+  EFT
+  ONLINE
+  DIGER
+}
+
+enum ParaBirimi {
+  TRY
+  USD
+  EUR
+  GBP
+}
+
+enum BildirimKanali {
+  EMAIL
+  SMS
+  WHATSAPP
+  PUSH
+}
+
+enum BildirimDurumu {
+  BEKLIYOR
+  GONDERILIYOR
+  GONDERILDI
+  BASARISIZ
+  IPTAL_EDILDI
+}
+
+enum BildirimTipi {
+  RANDEVU_OLUSTURULDU
+  RANDEVU_ONAYLANDI
+  RANDEVU_HATIRLATMA
+  RANDEVU_DEGISTIRILDI
+  RANDEVU_IPTAL_EDILDI
+  PAKET_BITIYOR
+  ODEME_HATIRLATMA
+  GOREV_ATANDI
+  GENEL
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE
+  LOGIN
+  LOGOUT
+  LOGIN_FAILED
+  PASSWORD_CHANGE
+  STATUS_CHANGE
+}
+
+enum DosyaTipi {
+  BELGE
+  SOZLESME
+  RAPOR
+  FATURA
+  GORSEL
+  DIGER
+}
+
+enum DosyaYuklemeDurumu {
+  BEKLIYOR
+  TAMAMLANDI
+  BASARISIZ
+}
+
+enum CalismaGunuIstisnasiTipi {
+  KAPALI
+  OZEL_SAAT
+}
+
+enum OdemeSaglayici {
+  IYZICO
+  PAYTR
+  STRIPE
+  DIGER
+}
+
+enum WebhookIslenmeDurumu {
+  ISLENDI
+  YOKSAYILDI
+  HATALI
+}
+
+enum IdempotencyDurumu {
+  ISLENIYOR
+  TAMAMLANDI
+  BASARISIZ
+}
+
+// ======================================================
+// SAAS / ORGANIZATION
+// ======================================================
+
+model Organization {
+  id Int @id @default(autoincrement())
+
+  ad      String
+  slug    String  @unique
+  email   String?
+  telefon String?
+  website String?
+
+  vergiNo      String?
+  vergiDairesi String?
+
+  durum OrganizationDurumu @default(AKTIF)
+
+  saatDilimi String @default("Europe/Istanbul")
+
+  varsayilanBildirimId Int?
+  varsayilanBildirim   BildirimTercihi? @relation("OrganizationVarsayilanBildirim", fields: [varsayilanBildirimId], references: [id])
+
+  members         OrganizationMember[]
+  musteriler      Musteri[]
+  elemanlar       Eleman[]
+  paketler        Paket[]
+  aktiviteler     Aktivite[]
+  gorevler        Gorev[]
+  randevular      Randevu[]
+  musteriPaketler MusteriPaket[]
+  odemeler        Odeme[]
+  bildirimler     Bildirim[]
+  auditLogs       AuditLog[]
+  dosyalar        Dosya[]
+  raporlar        ServisRapor[]
+  sessions        Session[]
+  subscriptions   OrganizationSubscription[]
+  calismaSaatleri CalismaSaati[]
+  tatiller        Tatil[]
+  idempotencyKeys IdempotencyKey[]
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  @@index([durum])
+  @@index([email])
+  @@index([createdAt])
+}
+
+// ======================================================
+// SUBSCRIPTION PLAN
+// ======================================================
+
+model SubscriptionPlan {
+  id Int @id @default(autoincrement())
+
+  ad         String
+  slug       String                 @unique
+  aciklama   String?
+  fiyat      Decimal                @db.Decimal(12, 2)
+  paraBirimi ParaBirimi             @default(TRY)
+  periyot    FaturalandirmaPeriyodu @default(AYLIK)
+
+  denemeGunSayisi Int @default(0)
+
+  maxKullanici    Int?
+  maxMusteri      Int?
+  maxRandevuAylik Int?
+  maxDepolamaMb   Int?
+
+  ozellikler Json?
+
+  aktif Boolean @default(true)
+
+  subscriptions OrganizationSubscription[]
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([aktif])
+}
+
+// ======================================================
+// ORGANIZATION SUBSCRIPTION
+// ======================================================
+
+model OrganizationSubscription {
+  id Int @id @default(autoincrement())
+
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  planId Int
+  plan   SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  durum   SubscriptionDurumu     @default(DENEME)
+  periyot FaturalandirmaPeriyodu @default(AYLIK)
+
+  baslangicTarihi   DateTime  @default(now()) @db.Timestamptz(3)
+  bitisTarihi       DateTime? @db.Timestamptz(3)
+  denemeBitisTarihi DateTime? @db.Timestamptz(3)
+
+  otomatikYenileme Boolean @default(true)
+
+  hariciSubscriptionId String?
+  hariciCustomerId     String?
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([organizationId])
+  @@index([planId])
+  @@index([durum])
+  @@index([bitisTarihi])
+}
+
+// ======================================================
+// ROLE / PERMISSION
+// ======================================================
+
+model Role {
+  id Int @id @default(autoincrement())
+
+  ad         String
+  slug       String  @unique
+  aciklama   String?
+  sistemRolu Boolean @default(false)
+
+  members     OrganizationMember[]
+  permissions RolePermission[]
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model Permission {
+  id Int @id @default(autoincrement())
+
+  ad       String
+  slug     String  @unique
+  aciklama String?
+
+  roles RolePermission[]
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+}
+
+model RolePermission {
+  roleId       Int
+  permissionId Int
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+}
+
+// ======================================================
+// KULLANICI
+// ======================================================
+
+model Kullanici {
+  id Int @id @default(autoincrement())
+
+  kullaniciAd String  @unique
+  email       String? @unique
+  sifreHash   String
+
+  ad      String?
+  soyad   String?
+  telefon String?
+
+  aktif      Boolean   @default(true)
+  sonGirisAt DateTime? @db.Timestamptz(3)
+
+  musteriId Int?
+  musteri   Musteri? @relation(fields: [musteriId], references: [id])
+
+  elemanId Int?    @unique
+  eleman   Eleman? @relation(fields: [elemanId], references: [id])
+
+  members     OrganizationMember[]
+  sessions    Session[]
+  aktiviteler Aktivite[]
+  gorevler    Gorev[]
+  bildirimler Bildirim[]
+  auditLogs   AuditLog[]
+
+  olusturduguRandevular  Randevu[] @relation("RandevuCreatedBy")
+  guncelledigiRandevular Randevu[] @relation("RandevuUpdatedBy")
+  olusturduguOdemeler    Odeme[]   @relation("OdemeCreatedBy")
+  guncelledigiOdemeler   Odeme[]   @relation("OdemeUpdatedBy")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([musteriId])
+  @@index([aktif])
+}
+
+// ======================================================
+// ORGANIZATION MEMBER
+// ======================================================
+
+model OrganizationMember {
+  id Int @id @default(autoincrement())
+
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  kullaniciId Int
+  kullanici   Kullanici @relation(fields: [kullaniciId], references: [id], onDelete: Cascade)
+
+  roleId Int
+  role   Role @relation(fields: [roleId], references: [id])
+
+  aktif Boolean @default(true)
+
+  davetEdildiAt DateTime? @db.Timestamptz(3)
+  kabulEdildiAt DateTime? @db.Timestamptz(3)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@unique([organizationId, kullaniciId])
+  @@index([organizationId])
+  @@index([kullaniciId])
+  @@index([roleId])
+  @@index([aktif])
+}
+
+// ======================================================
+// SESSION
+// ======================================================
+
+model Session {
+  id Int @id @default(autoincrement())
+
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  kullaniciId Int
+  kullanici   Kullanici @relation(fields: [kullaniciId], references: [id], onDelete: Cascade)
+
+  tokenHash String @unique
+
+  expiresAt DateTime  @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+
+  ipAddress String?
+  userAgent String?
+
+  @@index([organizationId])
+  @@index([kullaniciId])
+  @@index([expiresAt])
+}
+
+// ======================================================
+// MUSTERI
+// ======================================================
+
+model Musteri {
+  id Int @id @default(autoincrement())
+
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  firmaAd      String?
+  vergiNo      String?
+  vergiDairesi String?
+  telefon      String?
+  email        String?
+  website      String?
+
+  aktif  Boolean @default(true)
+  notlar String?
+
+  varsayilanBildirimId Int?
+  varsayilanBildirim   BildirimTercihi? @relation("MusteriVarsayilanBildirim", fields: [varsayilanBildirimId], references: [id])
+
+  kisiler      MusteriKisi[]
+  kullanicilar Kullanici[]
+  randevular   Randevu[]
+  raporlar     ServisRapor[]
+  paketler     MusteriPaket[]
+  aktiviteler  Aktivite[]
+  gorevler     Gorev[]
+  odemeler     Odeme[]
+  bildirimler  Bildirim[]
+  dosyalar     Dosya[]
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  @@index([organizationId])
+  @@index([organizationId, firmaAd])
+  @@index([organizationId, email])
+  @@index([organizationId, telefon])
+  @@index([organizationId, aktif])
+  @@index([createdAt])
+}
+
+// ======================================================
+// MUSTERI KISI / CONTACT
+// ======================================================
+
+model MusteriKisi {
+  id Int @id @default(autoincrement())
+
+  musteriId Int
+  musteri   Musteri @relation(fields: [musteriId], references: [id], onDelete: Cascade)
+
+  ad         String
+  soyad      String?
+  telefon    String?
+  email      String?
+  gorev      String?
+  departman  String?
+  cinsiyet   Cinsiyet?
+  anaYetkili Boolean   @default(false)
+  aktif      Boolean   @default(true)
+
+  notlar String?
+
+  randevular Randevu[]
+  dosyalar   Dosya[]
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  @@index([musteriId])
+  @@index([email])
+  @@index([telefon])
+  @@index([anaYetkili])
+}
+
+// ======================================================
+// PERSONEL / ELEMAN
+// ======================================================
+
+model Eleman {
+  id Int @id @default(autoincrement())
+
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  ad       String
+  soyad    String?
+  telefon  String?
+  email    String?
+  pozisyon String?
+
+  yas      Int?
+  cinsiyet Cinsiyet?
+  aktif    Boolean   @default(true)
+
+  kullanici Kullanici?
+
+  randevular      RandevuEleman[]
+  gorevler        Gorev[]
+  calismaSaatleri CalismaSaati[]
+  istisnalar      CalismaGunuIstisnasi[]
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  @@index([organizationId])
+  @@index([organizationId, aktif])
+  @@index([ad])
+  @@index([telefon])
+}
+
+// ======================================================
+// CALISMA SAATLERI / MUSAITLIK
+// ======================================================
+// organizationId dolu + elemanId bos  -> organizasyon varsayilan haftalik programi
+// organizationId bos  + elemanId dolu -> personel override (varsayilani ezer)
+
+model CalismaSaati {
+  id Int @id @default(autoincrement())
+
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  elemanId Int?
+  eleman   Eleman? @relation(fields: [elemanId], references: [id], onDelete: Cascade)
+
+  gun Int // 0 = Pazar ... 6 = Cumartesi
+
+  baslangicSaat String // "09:00"
+  bitisSaat     String // "18:00"
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([organizationId, gun])
+  @@index([elemanId, gun])
+}
+
+model Tatil {
+  id Int @id @default(autoincrement())
+
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  tarih DateTime @db.Date
+  ad    String
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([organizationId, tarih])
+  @@index([organizationId, tarih])
+}
+
+model CalismaGunuIstisnasi {
+  id Int @id @default(autoincrement())
+
+  elemanId Int
+  eleman   Eleman @relation(fields: [elemanId], references: [id], onDelete: Cascade)
+
+  tarih DateTime                 @db.Date
+  tip   CalismaGunuIstisnasiTipi
+
+  baslangicSaat String? // yalnizca tip=OZEL_SAAT icin
+  bitisSaat     String? // yalnizca tip=OZEL_SAAT icin
+
+  aciklama String?
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([elemanId, tarih])
+  @@index([elemanId, tarih])
+}
+
+// ======================================================
+// RANDEVU
+// ======================================================
+
+model Randevu {
+  id Int @id @default(autoincrement())
+
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  musteriId Int
+  musteri   Musteri @relation(fields: [musteriId], references: [id], onDelete: Cascade)
+
+  musteriKisiId Int?
+  musteriKisi   MusteriKisi? @relation(fields: [musteriKisiId], references: [id])
+
+  musteriPaketId Int?
+  musteriPaket   MusteriPaket? @relation(fields: [musteriPaketId], references: [id])
+
+  randevuBaslangic DateTime  @db.Timestamptz(3)
+  randevuBitis     DateTime? @db.Timestamptz(3)
+
+  durum  RandevuDurumu @default(PLANLANDI)
+  kaynak RandevuKaynak @default(PANEL)
+
+  servisTuru       ServisTuru?
+  aciliyetSeviyesi AciliyetSeviyesi @default(NORMAL)
+
+  randevuAlani  String?
+  sikayet       String?
+  gelismeKonusu String?
+  notlar        String?
+
+  iptalNedeni     String?
+  ertelenmeNedeni String?
+
+  eskiRandevuId Int?
+  eskiRandevu   Randevu? @relation("RandevuErteleme", fields: [eskiRandevuId], references: [id])
+
+  yeniRandevular Randevu[] @relation("RandevuErteleme")
+
+  bildirimOverrideId Int?
+  bildirimOverride   BildirimTercihi? @relation("RandevuBildirimOverride", fields: [bildirimOverrideId], references: [id])
+
+  elemanlar   RandevuEleman[]
+  rapor       ServisRapor?
+  aktiviteler Aktivite[]
+
+  createdById Int?
+  createdBy   Kullanici? @relation("RandevuCreatedBy", fields: [createdById], references: [id])
+
+  updatedById Int?
+  updatedBy   Kullanici? @relation("RandevuUpdatedBy", fields: [updatedById], references: [id])
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  @@index([organizationId])
+  @@index([organizationId, randevuBaslangic])
+  @@index([organizationId, randevuBaslangic, randevuBitis])
+  @@index([organizationId, durum])
+  @@index([musteriId])
+  @@index([musteriKisiId])
+  @@index([musteriPaketId])
+  @@index([servisTuru])
+}
+
+// ======================================================
+// RANDEVU - ELEMAN
+// ======================================================
+
+model RandevuEleman {
+  id Int @id @default(autoincrement())
+
+  randevuId Int
+  randevu   Randevu @relation(fields: [randevuId], references: [id], onDelete: Cascade)
+
+  elemanId Int
+  eleman   Eleman @relation(fields: [elemanId], references: [id])
+
+  rol RandevuElemanRolu @default(ASISTAN)
+
+  @@unique([randevuId, elemanId])
+  @@index([elemanId])
+}
+
+// ======================================================
+// PAKET
+// ======================================================
+
+model Paket {
+  id Int @id @default(autoincrement())
+
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  paketAd  String
+  aciklama String?
+
+  fiyat       Decimal    @db.Decimal(12, 2)
+  paraBirimi  ParaBirimi @default(TRY)
+  sureGun     Int?
+  seansSayisi Int? // null = sinirsiz seans (yalnizca sureGun ile sinirlanir)
+
+  durum PaketDurumu @default(AKTIF)
+
+  musteriler MusteriPaket[]
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  @@index([organizationId])
+  @@index([organizationId, durum])
+}
+
+// ======================================================
+// MUSTERI - PAKET
+// ======================================================
+
+model MusteriPaket {
+  id Int @id @default(autoincrement())
+
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  musteriId Int
+  musteri   Musteri @relation(fields: [musteriId], references: [id], onDelete: Cascade)
+
+  paketId Int
+  paket   Paket @relation(fields: [paketId], references: [id])
+
+  baslangicTarihi DateTime  @default(now()) @db.Timestamptz(3)
+  bitisTarihi     DateTime? @db.Timestamptz(3)
+
+  durum MusteriPaketDurumu @default(BEKLIYOR)
+
+  satisFiyati Decimal    @db.Decimal(12, 2)
+  paraBirimi  ParaBirimi @default(TRY)
+  indirim     Decimal    @default(0) @db.Decimal(12, 2)
+
+  otomatikYenileme Boolean @default(false)
+
+  notlar String?
+
+  odemeler   Odeme[]
+  randevular Randevu[]
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([organizationId])
+  @@index([musteriId])
+  @@index([paketId])
+  @@index([durum])
+  @@index([bitisTarihi])
+}
+
+// ======================================================
+// ODEME
+// ======================================================
+
+model Odeme {
+  id Int @id @default(autoincrement())
+
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  musteriId Int
+  musteri   Musteri @relation(fields: [musteriId], references: [id])
+
+  musteriPaketId Int?
+  musteriPaket   MusteriPaket? @relation(fields: [musteriPaketId], references: [id])
+
+  tutar      Decimal    @db.Decimal(12, 2)
+  paraBirimi ParaBirimi @default(TRY)
+
+  durum    OdemeDurumu   @default(BEKLIYOR)
+  yontem   OdemeYontemi?
+  islemNo  String?       @unique
+  aciklama String?
+
+  odemeTarihi DateTime? @db.Timestamptz(3)
+
+  createdById Int?
+  createdBy   Kullanici? @relation("OdemeCreatedBy", fields: [createdById], references: [id])
+
+  updatedById Int?
+  updatedBy   Kullanici? @relation("OdemeUpdatedBy", fields: [updatedById], references: [id])
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([organizationId])
+  @@index([organizationId, durum])
+  @@index([musteriId])
+  @@index([musteriPaketId])
+  @@index([odemeTarihi])
+}
+
+// ======================================================
+// ODEME WEBHOOK EVENT (idempotency)
+// ======================================================
+
+model PaymentWebhookEvent {
+  id Int @id @default(autoincrement())
+
+  saglayici        OdemeSaglayici
+  saglayiciEventId String
+
+  payload Json
+
+  islenmeDurumu WebhookIslenmeDurumu @default(ISLENDI)
+  hataMesaji    String?
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([saglayici, saglayiciEventId])
+  @@index([saglayici, createdAt])
+}
+
+// ======================================================
+// IDEMPOTENCY KEY (kritik POST/PATCH endpoint'leri icin)
+// ======================================================
+
+model IdempotencyKey {
+  id Int @id @default(autoincrement())
+
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  key         String
+  requestHash String
+
+  durum        IdempotencyDurumu @default(ISLENIYOR)
+  statusCode   Int?
+  responseBody Json?
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt DateTime @db.Timestamptz(3)
+
+  @@unique([organizationId, key])
+  @@index([durum, createdAt])
+}
+
+// ======================================================
+// CRM ACTIVITY / TIMELINE
+// ======================================================
+
+model Aktivite {
+  id Int @id @default(autoincrement())
+
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  musteriId Int
+  musteri   Musteri @relation(fields: [musteriId], references: [id], onDelete: Cascade)
+
+  kullaniciId Int?
+  kullanici   Kullanici? @relation(fields: [kullaniciId], references: [id])
+
+  randevuId Int?
+  randevu   Randevu? @relation(fields: [randevuId], references: [id])
+
+  tip   AktiviteTipi
+  durum AktiviteDurumu @default(TAMAMLANDI)
+
+  baslik   String
+  aciklama String?
+
+  planlananAt  DateTime? @db.Timestamptz(3)
+  tamamlananAt DateTime? @db.Timestamptz(3)
+
+  metadata Json?
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([organizationId])
+  @@index([musteriId, createdAt])
+  @@index([kullaniciId])
+  @@index([randevuId])
+  @@index([tip])
+}
+
+// ======================================================
+// GOREV
+// ======================================================
+
+model Gorev {
+  id Int @id @default(autoincrement())
+
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  musteriId Int?
+  musteri   Musteri? @relation(fields: [musteriId], references: [id])
+
+  elemanId Int?
+  eleman   Eleman? @relation(fields: [elemanId], references: [id])
+
+  atananKullaniciId Int?
+  atananKullanici   Kullanici? @relation(fields: [atananKullaniciId], references: [id])
+
+  baslik   String
+  aciklama String?
+
+  durum   GorevDurumu   @default(BEKLIYOR)
+  oncelik GorevOnceligi @default(NORMAL)
+
+  baslangicTarihi  DateTime? @db.Timestamptz(3)
+  sonTarih         DateTime? @db.Timestamptz(3)
+  tamamlanmaTarihi DateTime? @db.Timestamptz(3)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([organizationId])
+  @@index([organizationId, durum])
+  @@index([musteriId])
+  @@index([elemanId])
+  @@index([atananKullaniciId])
+  @@index([sonTarih])
+}
+
+// ======================================================
+// SERVIS RAPORU
+// ======================================================
+
+model ServisRapor {
+  id Int @id @default(autoincrement())
+
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  musteriId Int
+  musteri   Musteri? @relation(fields: [musteriId], references: [id])
+
+  randevuId Int     @unique
+  randevu   Randevu @relation(fields: [randevuId], references: [id])
+
+  baslik       String?
+  sikayet      String?
+  yapilanIslem String?
+  sonuc        String?
+  aciklama     String?
+
+  kapaliGunSayisi Int?
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([organizationId])
+  @@index([musteriId])
+}
+
+// ======================================================
+// BILDIRIM TERCIHLERI
+// ======================================================
+
+model BildirimTercihi {
+  id Int @id @default(autoincrement())
+
+  emailAktif    Boolean @default(true)
+  smsAktif      Boolean @default(false)
+  whatsappAktif Boolean @default(false)
+  pushAktif     Boolean @default(false)
+
+  randevuHatirlatma Boolean @default(true)
+  paketBitisUyarisi Boolean @default(true)
+  odemeHatirlatma   Boolean @default(true)
+
+  organizationDefaults Organization[] @relation("OrganizationVarsayilanBildirim")
+
+  customerDefaults Musteri[] @relation("MusteriVarsayilanBildirim")
+
+  randevuOverrides Randevu[] @relation("RandevuBildirimOverride")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+// ======================================================
+// BILDIRIM
+// ======================================================
+
+model Bildirim {
+  id Int @id @default(autoincrement())
+
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  musteriId Int?
+  musteri   Musteri? @relation(fields: [musteriId], references: [id])
+
+  kullaniciId Int?
+  kullanici   Kullanici? @relation(fields: [kullaniciId], references: [id])
+
+  tip   BildirimTipi
+  kanal BildirimKanali
+  durum BildirimDurumu @default(BEKLIYOR)
+
+  baslik String
+  mesaj  String
+
+  planlananAt  DateTime? @db.Timestamptz(3)
+  gonderildiAt DateTime? @db.Timestamptz(3)
+
+  hataMesaji   String?
+  denemeSayisi Int     @default(0)
+
+  metadata Json?
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([organizationId])
+  @@index([organizationId, durum])
+  @@index([musteriId])
+  @@index([kullaniciId])
+  @@index([durum, planlananAt])
+}
+
+// ======================================================
+// DOSYA / BELGE
+// ======================================================
+
+model Dosya {
+  id Int @id @default(autoincrement())
+
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  musteriId Int?
+  musteri   Musteri? @relation(fields: [musteriId], references: [id])
+
+  musteriKisiId Int?
+  musteriKisi   MusteriKisi? @relation(fields: [musteriKisiId], references: [id])
+
+  ad        String
+  mimeType  String
+  boyutByte BigInt
+
+  tip DosyaTipi @default(DIGER)
+
+  yuklemeDurumu DosyaYuklemeDurumu @default(BEKLIYOR)
+
+  storageKey String
+  url        String?
+
+  metadata Json?
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  @@index([organizationId])
+  @@index([musteriId])
+  @@index([musteriKisiId])
+  @@index([yuklemeDurumu, createdAt])
+}
+
+// ======================================================
+// AUDIT LOG
+// ======================================================
+
+model AuditLog {
+  id Int @id @default(autoincrement())
+
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  kullaniciId Int?
+  kullanici   Kullanici? @relation(fields: [kullaniciId], references: [id])
+
+  requestId String?
+
+  action AuditAction
+
+  entity   String
+  entityId Int
+
+  oldData Json?
+  newData Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([organizationId, createdAt])
+  @@index([kullaniciId])
+  @@index([entity, entityId])
+  @@index([action])
+  @@index([requestId])
+}
